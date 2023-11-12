@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html lang="en" class="h-100" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>Real-time CRM with Flink</title>
+
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.11.1/font/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.2/css/bootstrap.min.css}" />
+    <link rel="stylesheet" th:href="@{/css/rtcrmui.css}" />
+
+    <link rel="icon" type="image/png" th:href="@{img/icon.png}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+</head>
+<body class="d-flex flex-column">
+
+<main class="flex-shrink-0" layout:fragment="content">
+</main>
+
+<script th:src="@{/webjars/jquery/3.7.1/jquery.min.js}"></script>
+<script th:src="@{/webjars/bootstrap/5.3.2/js/bootstrap.min.js}"></script>
+<script th:src="@{/webjars/stomp-websocket/2.3.4/stomp.js}"></script>
+<script th:src="@{/webjars/sockjs-client/1.5.1/sockjs.js}"></script>
+<script th:src="@{/webjars/ace/1.23.4/src-min/ace.js}"></script>
+
+<script th:src="@{/js/rtcrmui.js}"></script>
+
+<script type="text/javascript" layout:fragment="script">
+</script>
+
+</body>
+</html>

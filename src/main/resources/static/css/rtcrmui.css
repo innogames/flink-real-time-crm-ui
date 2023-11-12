@@ -1,0 +1,15 @@
+.json-editor {
+    height: 400px;
+    margin-bottom: 8px;
+}
+
+.trigger-alerts {
+    background-image: url("../img/foe-background.jpg");
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 10px;
+}
+
+.trigger-alert {
+    background-color: #032830db !important;
+}

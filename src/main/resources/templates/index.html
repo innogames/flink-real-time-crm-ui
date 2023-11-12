@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<body>
+
+<main class="flex-shrink-0" layout:fragment="content">
+    <div class="container-fluid" style="padding-top: 3px;">
+        <div class="row mb-2">
+            <div class="col-sm" style="text-align: center;">
+                <img th:src="@{/img/step1.png}">
+            </div>
+            <div class="col-sm" style="text-align: center;">
+                <img th:src="@{/img/step2.png}">
+            </div>
+            <div class="col-sm" style="text-align: center;">
+                <img th:src="@{/img/step3.png}">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <i class="bi bi-wrench-adjustable"></i> Configure campaigns
+                    </div>
+                    <div class="card-body">
+                        <div id="campaignJsonEditor" class="json-editor"></div>
+                        <button type="button" onclick="generateCampaign()" class="btn btn-outline-light"><i class="bi bi-plus-circle-fill"></i> Generate example</button>
+                        <button type="button" onclick="sendCampaign()" class="btn btn btn-outline-info"><i class="bi bi-send-fill"></i> Send to Kafka</button>
+                    </div>
+                    <div class="card-footer text-muted">
+                        Topic: <span class="badge rounded-pill text-bg-light">crm-campaigns</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <i class="bi bi-controller"></i> Generate tracking events
+                    </div>
+                    <div class="card-body">
+                        <div id="eventJsonEditor" class="json-editor"></div>
+                        <button type="button" onclick="generateEvent()" class="btn btn-outline-light"><i class="bi bi-plus-circle-fill"></i> Generate example</button>
+                        <button type="button" onclick="sendEvent()" class="btn btn btn-outline-info"><i class="bi bi-send-fill"></i> Send to Kafka</button>
+                    </div>
+                    <div class="card-footer text-muted">
+                        Topic: <span class="badge rounded-pill text-bg-light">events-valid</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm trigger-alerts" id="triggerAlerts"></div>
+        </div>
+        <div class="row mt-3">
+            <div class="col">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <i class="bi bi-cash-stack"></i> CRM Triggers from Kafka
+                    </div>
+                    <div class="card-body">
+                        <pre id="triggers"></pre>
+                    </div>
+                    <div class="card-footer text-muted">
+                        Topic: <span class="badge rounded-pill text-bg-light">crm-triggers</span>, when triggered, a player should receive an in-game offer
+                    </div>
+                </div>
+            </div>
+        <div class="row">
+    </div>
+</main>
+
+<script type="text/javascript" layout:fragment="script">
+    const campaignEditor = ace.edit("campaignJsonEditor");
+    campaignEditor.setTheme("ace/theme/dracula");
+    campaignEditor.session.setMode("ace/mode/json");
+
+    const eventEditor = ace.edit("eventJsonEditor");
+    eventEditor.setTheme("ace/theme/dracula");
+    eventEditor.session.setMode("ace/mode/json");
+
+    function generateEvent() {
+        eventEditor.setValue(`{
+    "schema_version": "2023110110010101",
+    "event_id": "7a8d0614-4e8e-4464-b439-36e31441a040",
+    "system_type": "game",
+    "system_name": "foe-backend",
+    "game": "foe",
+    "market": "de",
+    "player_id": 12345,
+    "event_type": "progress",
+    "event_name": "fight",
+    "event_scope": "user",
+    "created_at": "2023-11-20T11:00:00.00Z",
+    "received_at": "2023-11-20T11:00:02.00Z",
+    "hostname": "foe-backend-1.ig.com",
+    "context": {},
+    "data": {
+        "result": "loss"
+    }
+}`);
+    }
+
+    function generateCampaign() {
+        campaignEditor.setValue(`{
+    "campaign_id": 4711,
+    "enabled": true,
+    "game": "foe",
+    "event_name": "fight",
+    "start_date": "2023-09-01T10:00:00.00Z",
+    "end_date": "2023-12-01T10:00:00.00Z",
+    "filter": "function(event) { return event.getData().get('result') === 'loss' }"
+}`);
+    }
+
+    function sendEvent() {
+        const eventJson = eventEditor.getValue();
+
+        fetch('/event', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: eventJson
+        });
+
+        eventEditor.setValue('');
+    }
+
+    function sendCampaign() {
+        const campaignJson = campaignEditor.getValue();
+
+        fetch('/campaign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: campaignJson
+        });
+
+        campaignEditor.setValue('');
+    }
+
+    const socket = new SockJS('/ws');
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, () => {
+        stompClient.subscribe('/topic/triggers', (message) => {
+            const trigger = JSON.parse(message.body);
+            const campaignId = trigger.campaign.campaign_id;
+            const playerId = trigger.event.player_id;
+            const game = trigger.event.game;
+            const market = trigger.event.market;
+
+            $('#triggerAlerts').append(`
+                <div class="alert alert-info d-flex align-items-center trigger-alert" role="alert">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-gem m-2" viewBox="0 0 16 16">
+                        <path d="M3.1.7a.5.5 0 0 1 .4-.2h9a.5.5 0 0 1 .4.2l2.976 3.974c.149.185.156.45.01.644L8.4 15.3a.5.5 0 0 1-.8 0L.1 5.3a.5.5 0 0 1 0-.6l3-4zm11.386 3.785-1.806-2.41-.776 2.413 2.582-.003zm-3.633.004.961-2.989H4.186l.963 2.995 5.704-.006zM5.47 5.495 8 13.366l2.532-7.876-5.062.005zm-1.371-.999-.78-2.422-1.818 2.425 2.598-.003zM1.499 5.5l5.113 6.817-2.192-6.82L1.5 5.5zm7.889 6.817 5.123-6.83-2.928.002-2.195 6.828z"/>
+                    </svg>
+                    <div>
+                    Trigger campaign <strong>${campaignId}</strong> for player <strong>${playerId}</strong> in game <strong>${game}</strong> and market <strong>${market}</strong>!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            `);
+
+            $('#triggers').append(message.body + '\n');
+        });
+    });
+
+    generateEvent();
+    generateCampaign();
+</script>
+
+</body>
+</html>
